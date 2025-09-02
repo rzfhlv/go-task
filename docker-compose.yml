@@ -1,0 +1,54 @@
+version: '3.9'
+
+services:
+  app:
+    container_name: gotask-app
+    build:
+      dockerfile: Dockerfile
+      context: .
+      args:
+       - APP_PORT="8080"
+    ports:
+      - "8080:80"
+    restart: on-failure
+    depends_on:
+      - postgres
+      - redis
+    command: ["./main", "start"]
+    networks:
+      - gotask
+
+  postgres:
+    container_name: gotask-postgres
+    image: postgres:15.4-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: gotask
+      POSTGRES_PASSWORD: verysecret
+      POSTGRES_DB: gotask
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - gotask
+
+  redis:
+    container_name: gotask-redis
+    image: redis:6.2-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    command: redis-server --save 20 1 --loglevel warning --requirepass verysecret
+    volumes:
+      - redisdata:/data
+    networks:
+      - gotask
+
+networks:
+  gotask:
+    driver: bridge
+
+volumes:
+  pgdata:
+  redisdata:
