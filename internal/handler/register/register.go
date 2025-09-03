@@ -31,7 +31,7 @@ func (h *Handler) Register(e echo.Context) (err error) {
 	user := model.User{}
 	err = e.Bind(&user)
 	if err != nil {
-		return e.JSON(http.StatusUnprocessableEntity, nil)
+		return e.JSON(http.StatusUnprocessableEntity, general.Set(false, nil, nil, nil, "invalid json"))
 	}
 
 	err = e.Validate(user)

@@ -4,9 +4,10 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
-	"time"
 
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
+	"github.com/rzfhlv/go-task/config"
 	"github.com/rzfhlv/go-task/internal/model"
 	"github.com/rzfhlv/go-task/internal/repository/user"
 	"github.com/rzfhlv/go-task/pkg/errs"
@@ -20,13 +21,15 @@ type RegisterUsecase interface {
 
 type Register struct {
 	userRepository user.UserRepository
+	redis          *redis.Client
 	hasher         hasher.HashPassword
 	jwt            jwt.JWTInterface
 }
 
-func New(userRepository user.UserRepository, hasher hasher.HashPassword, jwt jwt.JWTInterface) RegisterUsecase {
+func New(userRepository user.UserRepository, redis *redis.Client, hasher hasher.HashPassword, jwt jwt.JWTInterface) RegisterUsecase {
 	return &Register{
 		userRepository: userRepository,
+		redis:          redis,
 		hasher:         hasher,
 		jwt:            jwt,
 	}
@@ -50,7 +53,6 @@ func (r *Register) Register(ctx context.Context, user model.User) (model.User, m
 		return result, jwt, errs.NewErrs(http.StatusUnprocessableEntity, "email already exists")
 	}
 
-	user.CreatedAt = time.Now()
 	result, err = r.userRepository.Create(ctx, user)
 	if err != nil {
 		slog.ErrorContext(ctx, "[Usecase.Register] error when call userRepository.Create", slog.String("error", err.Error()))
@@ -62,6 +64,13 @@ func (r *Register) Register(ctx context.Context, user model.User) (model.User, m
 	if err != nil {
 		slog.ErrorContext(ctx, "[Usecase.Register] error when call jwt.Generate", slog.String("error", err.Error()))
 		return result, jwt, errs.NewErrs(http.StatusUnprocessableEntity, "failed generated token")
+	}
+
+	cfg := config.Get()
+	err = r.redis.Set(ctx, jti, user.ID, cfg.JWT.ExpiresIn).Err()
+	if err != nil {
+		slog.ErrorContext(ctx, "[Usecase.Register] error when call redis.Set", slog.String("error", err.Error()))
+		return result, jwt, errs.NewErrs(http.StatusInternalServerError, "something went wrong")
 	}
 
 	return result, token, nil

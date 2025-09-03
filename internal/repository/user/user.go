@@ -9,8 +9,8 @@ import (
 
 var (
 	createUserQuery = `INSERT INTO users
-	(name, email, password, created_at)
-	VALUES ($1, $2, $3, $4) RETURNING *`
+		(name, email, password)
+		VALUES ($1, $2, $3) RETURNING *`
 
 	getByEmailQUery = `SELECT id, name, email, password FROM users WHERE email = $1`
 )
@@ -32,7 +32,7 @@ func New(db *sqlx.DB) UserRepository {
 
 func (u *User) Create(ctx context.Context, user model.User) (model.User, error) {
 	result := model.User{}
-	err := u.db.Get(&result, createUserQuery, user.Name, user.Email, user.Password, user.CreatedAt)
+	err := u.db.Get(&result, createUserQuery, user.Name, user.Email, user.Password)
 	if err != nil {
 		return model.User{}, err
 	}

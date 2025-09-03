@@ -10,12 +10,16 @@ import (
 	"github.com/rzfhlv/go-task/config"
 	loginhandler "github.com/rzfhlv/go-task/internal/handler/login"
 	registerhandler "github.com/rzfhlv/go-task/internal/handler/register"
+	taskhandler "github.com/rzfhlv/go-task/internal/handler/task"
 	"github.com/rzfhlv/go-task/internal/infrastructure"
+	"github.com/rzfhlv/go-task/internal/repository/task"
 	"github.com/rzfhlv/go-task/internal/repository/user"
 	"github.com/rzfhlv/go-task/internal/usecase/login"
 	"github.com/rzfhlv/go-task/internal/usecase/register"
+	taskusecase "github.com/rzfhlv/go-task/internal/usecase/task"
 	"github.com/rzfhlv/go-task/pkg/hasher"
 	"github.com/rzfhlv/go-task/pkg/jwt"
+	"github.com/rzfhlv/go-task/pkg/middleware/auth"
 )
 
 type CustomValidator struct {
@@ -50,18 +54,32 @@ func Init(infra infrastructure.Infrastructure, cfg *config.Configuration) (e *ec
 	e.Validator = &CustomValidator{validator: validator.New()}
 
 	sqlStore := infra.SQLStore()
+	redis := infra.Redis()
 	userRepository := user.New(sqlStore.GetDB())
+	taskRepository := task.New(sqlStore.GetDB())
 	hasher := hasher.HasherPassword{}
 	jwt := jwt.New(cfg)
 
-	registerUsecase := register.New(userRepository, &hasher, jwt)
+	middleware := auth.New(redis.GetClient(), jwt)
+
+	registerUsecase := register.New(userRepository, redis.GetClient(), &hasher, jwt)
 	registerHandler := registerhandler.New(registerUsecase)
 
-	loginUsecase := login.New(userRepository, &hasher, jwt)
+	loginUsecase := login.New(userRepository, redis.GetClient(), &hasher, jwt)
 	loginHandler := loginhandler.New(loginUsecase)
+
+	taskUsecase := taskusecase.New(taskRepository)
+	taskHandler := taskhandler.New(taskUsecase)
 
 	route := e.Group("/v1")
 	route.POST("/register", registerHandler.Register)
 	route.POST("/login", loginHandler.Login)
+
+	task := route.Group("/tasks", middleware.Bearer)
+	task.POST("", taskHandler.Create)
+	task.GET("", taskHandler.GetByUserID)
+	task.GET("/:id", taskHandler.GetByID)
+	task.PUT("/:id", taskHandler.Update)
+	task.DELETE("/:id", taskHandler.Delete)
 	return
 }

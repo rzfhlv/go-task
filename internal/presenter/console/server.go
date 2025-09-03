@@ -45,6 +45,14 @@ func init() {
 			if err := e.Shutdown(ctx); err != nil {
 				e.Logger.Fatal(err)
 			}
+
+			if err := infra.SQLStore().Close(); err != nil {
+				e.Logger.Fatal(err)
+			}
+
+			if err := infra.Redis().Close(); err != nil {
+				e.Logger.Fatal(err)
+			}
 		},
 	})
 }
