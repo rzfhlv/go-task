@@ -23,9 +23,9 @@ services:
     image: postgres:15.4-alpine
     restart: always
     environment:
-      POSTGRES_USER: gotask
-      POSTGRES_PASSWORD: verysecret
-      POSTGRES_DB: gotask
+      POSTGRES_USER: "gotask"
+      POSTGRES_PASSWORD: "verysecret"
+      POSTGRES_DB: "gotask"
     ports:
       - "5432:5432"
     volumes:
