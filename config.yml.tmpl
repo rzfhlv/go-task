@@ -1,0 +1,21 @@
+app:
+  env: "local"
+  name: "gotest"
+  port: "8080"
+
+database:
+  driver: "postgres"
+  name: "gotest"
+  host: "localhost"
+  port: "5432"
+  user: "gotest"
+  password: "verysecret"
+
+redis:
+  host: "localhost"
+  port: "6379"
+  password: "verysecret"
+
+jwt:
+  secret: "verysecret"
+  expires_in: "120s"
