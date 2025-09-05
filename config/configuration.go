@@ -18,9 +18,10 @@ type Configuration struct {
 }
 
 type AppConfiguration struct {
-	Env  string `mapstructure:"env"`
-	Name string `mapstructure:"name"`
-	Port string `mapstructure:"port"`
+	Env      string `mapstructure:"env"`
+	Name     string `mapstructure:"name"`
+	Port     string `mapstructure:"port"`
+	LogLevel string `mapstructure:"log_level"`
 }
 
 type DatabaseConfiguration struct {
