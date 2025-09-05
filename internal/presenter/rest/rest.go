@@ -12,6 +12,7 @@ import (
 	registerhandler "github.com/rzfhlv/go-task/internal/handler/register"
 	taskhandler "github.com/rzfhlv/go-task/internal/handler/task"
 	"github.com/rzfhlv/go-task/internal/infrastructure"
+	"github.com/rzfhlv/go-task/internal/repository/cache"
 	"github.com/rzfhlv/go-task/internal/repository/task"
 	"github.com/rzfhlv/go-task/internal/repository/user"
 	"github.com/rzfhlv/go-task/internal/usecase/login"
@@ -54,18 +55,20 @@ func Init(infra infrastructure.Infrastructure, cfg *config.Configuration) (e *ec
 	e.Validator = &CustomValidator{validator: validator.New()}
 
 	sqlStore := infra.SQLStore()
-	redis := infra.Redis()
+	memStore := infra.MemStore()
 	userRepository := user.New(sqlStore.GetDB())
+	cacheRepository := cache.New(memStore.GetClient())
 	taskRepository := task.New(sqlStore.GetDB())
+
 	hasher := hasher.HasherPassword{}
 	jwt := jwt.New(cfg)
 
-	middleware := auth.New(redis.GetClient(), jwt)
+	middleware := auth.New(cacheRepository, jwt)
 
-	registerUsecase := register.New(userRepository, redis.GetClient(), &hasher, jwt)
+	registerUsecase := register.New(userRepository, cacheRepository, &hasher, jwt)
 	registerHandler := registerhandler.New(registerUsecase)
 
-	loginUsecase := login.New(userRepository, redis.GetClient(), &hasher, jwt)
+	loginUsecase := login.New(userRepository, cacheRepository, &hasher, jwt)
 	loginHandler := loginhandler.New(loginUsecase)
 
 	taskUsecase := taskusecase.New(taskRepository)

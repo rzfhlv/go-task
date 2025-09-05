@@ -4,10 +4,11 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/labstack/echo/v4"
-	"github.com/redis/go-redis/v9"
+	"github.com/rzfhlv/go-task/internal/repository/cache"
 	"github.com/rzfhlv/go-task/pkg/jwt"
 	"github.com/rzfhlv/go-task/pkg/response/general"
 )
@@ -23,14 +24,14 @@ type AuthMiddleware interface {
 }
 
 type Auth struct {
-	redis *redis.Client
-	jwt   jwt.JWTInterface
+	cacheRepository cache.CacheRepository
+	jwt             jwt.JWTInterface
 }
 
-func New(redis *redis.Client, jwt jwt.JWTInterface) AuthMiddleware {
+func New(cacheRepository cache.CacheRepository, jwt jwt.JWTInterface) AuthMiddleware {
 	return &Auth{
-		redis: redis,
-		jwt:   jwt,
+		cacheRepository: cacheRepository,
+		jwt:             jwt,
 	}
 }
 
@@ -58,15 +59,25 @@ func (a *Auth) Bearer(next echo.HandlerFunc) echo.HandlerFunc {
 			return c.JSON(http.StatusUnauthorized, general.Set(false, nil, nil, nil, "unauthorized"))
 		}
 
-		err = a.redis.Get(context.Background(), claims.RegisteredClaims.ID).Err()
+		val, err := a.cacheRepository.Get(context.Background(), claims.RegisteredClaims.ID)
 		if err != nil {
 			slog.Error("error when get token from cahce", slog.String("error", err.Error()))
 			return c.JSON(http.StatusUnauthorized, general.Set(false, nil, nil, nil, "unauthorized"))
 		}
 
-		slog.Info("id from validate", slog.Any("id", claims.ID))
+		valInt, err := strconv.ParseInt(val, 10, 64)
+		if err != nil {
+			slog.Error("error when parse value from cache", slog.String("error", err.Error()))
+			return c.JSON(http.StatusUnauthorized, general.Set(false, nil, nil, nil, "unauthorized"))
+		}
+
+		if claims.ID != valInt {
+			slog.Error("error id not match", slog.Any("claims_id", claims.ID), slog.Any("val_from_cache", valInt))
+			return c.JSON(http.StatusUnauthorized, general.Set(false, nil, nil, nil, "unauthorized"))
+		}
+
 		ctx := c.Request().Context()
-		ctx = context.WithValue(ctx, IdKey, int64(claims.ID))
+		ctx = context.WithValue(ctx, IdKey, valInt)
 		c.SetRequest(c.Request().WithContext(ctx))
 
 		return next(c)

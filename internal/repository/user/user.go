@@ -12,11 +12,11 @@ var (
 		(name, email, password)
 		VALUES ($1, $2, $3) RETURNING *`
 
-	getByEmailQUery = `SELECT id, name, email, password FROM users WHERE email = $1`
+	getByEmailQUery = `SELECT id, name, email, password, created_at FROM users WHERE email = $1`
 )
 
 type UserRepository interface {
-	Create(ctx context.Context, user model.User) (model.User, error)
+	Create(ctx context.Context, register model.Register) (model.User, error)
 	GetByEmail(ctx context.Context, email string) (model.User, error)
 }
 
@@ -30,9 +30,9 @@ func New(db *sqlx.DB) UserRepository {
 	}
 }
 
-func (u *User) Create(ctx context.Context, user model.User) (model.User, error) {
+func (u *User) Create(ctx context.Context, register model.Register) (model.User, error) {
 	result := model.User{}
-	err := u.db.Get(&result, createUserQuery, user.Name, user.Email, user.Password)
+	err := u.db.Get(&result, createUserQuery, register.Name, register.Email, register.Password)
 	if err != nil {
 		return model.User{}, err
 	}

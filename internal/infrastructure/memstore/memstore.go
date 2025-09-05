@@ -1,4 +1,4 @@
-package redis
+package memstore
 
 import (
 	"context"
@@ -15,11 +15,11 @@ var (
 	redisErr    error
 )
 
-type Redis struct {
+type Memstore struct {
 	client *redis.Client
 }
 
-func New(ctx context.Context, redisConfig config.RedisConfiguration) (*Redis, error) {
+func New(ctx context.Context, redisConfig config.RedisConfiguration) (*Memstore, error) {
 	once.Do(func() {
 		redisClient = redis.NewClient(&redis.Options{
 			Addr:     fmt.Sprintf("%s:%s", redisConfig.Host, redisConfig.Port),
@@ -37,16 +37,16 @@ func New(ctx context.Context, redisConfig config.RedisConfiguration) (*Redis, er
 		return nil, redisErr
 	}
 
-	return &Redis{
+	return &Memstore{
 		client: redisClient,
 	}, nil
 }
 
-func (r *Redis) GetClient() *redis.Client {
+func (r *Memstore) GetClient() *redis.Client {
 	return r.client
 }
 
-func (r *Redis) Close() error {
+func (r *Memstore) Close() error {
 	if r.client != nil {
 		r.client.Close()
 	}

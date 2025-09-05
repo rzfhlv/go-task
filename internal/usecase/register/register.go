@@ -6,9 +6,9 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/redis/go-redis/v9"
 	"github.com/rzfhlv/go-task/config"
 	"github.com/rzfhlv/go-task/internal/model"
+	"github.com/rzfhlv/go-task/internal/repository/cache"
 	"github.com/rzfhlv/go-task/internal/repository/user"
 	"github.com/rzfhlv/go-task/pkg/errs"
 	"github.com/rzfhlv/go-task/pkg/hasher"
@@ -16,44 +16,44 @@ import (
 )
 
 type RegisterUsecase interface {
-	Register(ctx context.Context, user model.User) (model.User, model.JWT, error)
+	Register(ctx context.Context, register model.Register) (model.User, model.JWT, error)
 }
 
 type Register struct {
-	userRepository user.UserRepository
-	redis          *redis.Client
-	hasher         hasher.HashPassword
-	jwt            jwt.JWTInterface
+	userRepository  user.UserRepository
+	cacheRepository cache.CacheRepository
+	hasher          hasher.HashPassword
+	jwt             jwt.JWTInterface
 }
 
-func New(userRepository user.UserRepository, redis *redis.Client, hasher hasher.HashPassword, jwt jwt.JWTInterface) RegisterUsecase {
+func New(userRepository user.UserRepository, cacheRepository cache.CacheRepository, hasher hasher.HashPassword, jwt jwt.JWTInterface) RegisterUsecase {
 	return &Register{
-		userRepository: userRepository,
-		redis:          redis,
-		hasher:         hasher,
-		jwt:            jwt,
+		userRepository:  userRepository,
+		cacheRepository: cacheRepository,
+		hasher:          hasher,
+		jwt:             jwt,
 	}
 }
 
-func (r *Register) Register(ctx context.Context, user model.User) (model.User, model.JWT, error) {
+func (r *Register) Register(ctx context.Context, register model.Register) (model.User, model.JWT, error) {
 	result := model.User{}
 	jwt := model.JWT{}
 
-	hashPassword, err := r.hasher.HashedPassword(user.Password)
+	hashPassword, err := r.hasher.HashedPassword(register.Password)
 	if err != nil {
 		slog.ErrorContext(ctx, "[Usecase.Register] error when call hasher.HashedPassword", slog.String("error", err.Error()))
 		return result, jwt, errs.NewErrs(http.StatusUnprocessableEntity, "hasher error")
 	}
 
-	user.Password = hashPassword
+	register.Password = hashPassword
 
-	_, err = r.userRepository.GetByEmail(ctx, user.Email)
+	_, err = r.userRepository.GetByEmail(ctx, register.Email)
 	if err == nil {
-		slog.InfoContext(ctx, "[Usecase.Register] duplicate data when call userRepository.GetByEmail", slog.String("email", user.Email))
+		slog.InfoContext(ctx, "[Usecase.Register] duplicate data when call userRepository.GetByEmail", slog.String("email", register.Email))
 		return result, jwt, errs.NewErrs(http.StatusUnprocessableEntity, "email already exists")
 	}
 
-	result, err = r.userRepository.Create(ctx, user)
+	result, err = r.userRepository.Create(ctx, register)
 	if err != nil {
 		slog.ErrorContext(ctx, "[Usecase.Register] error when call userRepository.Create", slog.String("error", err.Error()))
 		return result, jwt, errs.NewErrs(http.StatusInternalServerError, "something went wrong")
@@ -67,7 +67,7 @@ func (r *Register) Register(ctx context.Context, user model.User) (model.User, m
 	}
 
 	cfg := config.Get()
-	err = r.redis.Set(ctx, jti, user.ID, cfg.JWT.ExpiresIn).Err()
+	err = r.cacheRepository.Set(ctx, jti, result.ID, cfg.JWT.ExpiresIn)
 	if err != nil {
 		slog.ErrorContext(ctx, "[Usecase.Register] error when call redis.Set", slog.String("error", err.Error()))
 		return result, jwt, errs.NewErrs(http.StatusInternalServerError, "something went wrong")

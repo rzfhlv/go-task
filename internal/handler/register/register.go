@@ -28,19 +28,20 @@ func New(usecase register.RegisterUsecase) RegisterHandler {
 
 func (h *Handler) Register(e echo.Context) (err error) {
 	ctx := e.Request().Context()
-	user := model.User{}
-	err = e.Bind(&user)
+	register := model.Register{}
+
+	err = e.Bind(&register)
 	if err != nil {
 		return e.JSON(http.StatusUnprocessableEntity, general.Set(false, nil, nil, nil, "invalid json"))
 	}
 
-	err = e.Validate(user)
+	err = e.Validate(register)
 	if err != nil {
 		slog.ErrorContext(ctx, "[Handler.Register] error when validate the request", slog.String("error", err.Error()))
 		return e.JSON(http.StatusBadRequest, general.Set(false, nil, nil, nil, err.Error()))
 	}
 
-	user, jwt, err := h.usecase.Register(ctx, user)
+	result, jwt, err := h.usecase.Register(ctx, register)
 	if err != nil {
 		if httpErr, ok := err.(*errs.HttpError); ok {
 			return e.JSON(httpErr.StatusCode, general.Set(false, nil, nil, nil, httpErr.Message))
@@ -51,7 +52,7 @@ func (h *Handler) Register(e echo.Context) (err error) {
 
 	resp := auth.AuthResponse{
 		JWT:  jwt,
-		User: user,
+		User: result,
 	}
 
 	return e.JSON(http.StatusOK, resp)

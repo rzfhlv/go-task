@@ -50,7 +50,7 @@ func init() {
 				e.Logger.Fatal(err)
 			}
 
-			if err := infra.Redis().Close(); err != nil {
+			if err := infra.MemStore().Close(); err != nil {
 				e.Logger.Fatal(err)
 			}
 		},

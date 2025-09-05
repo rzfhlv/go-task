@@ -2,13 +2,14 @@ package login
 
 import (
 	"context"
+	"database/sql"
 	"log/slog"
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/redis/go-redis/v9"
 	"github.com/rzfhlv/go-task/config"
 	"github.com/rzfhlv/go-task/internal/model"
+	"github.com/rzfhlv/go-task/internal/repository/cache"
 	"github.com/rzfhlv/go-task/internal/repository/user"
 	"github.com/rzfhlv/go-task/pkg/errs"
 	"github.com/rzfhlv/go-task/pkg/hasher"
@@ -21,18 +22,18 @@ type LoginUsecase interface {
 }
 
 type Login struct {
-	userRepository user.UserRepository
-	redis          *redis.Client
-	hasher         hasher.HashPassword
-	jwt            jwt.JWTInterface
+	userRepository  user.UserRepository
+	cacheRepository cache.CacheRepository
+	hasher          hasher.HashPassword
+	jwt             jwt.JWTInterface
 }
 
-func New(userRepository user.UserRepository, redis *redis.Client, hasher hasher.HashPassword, jwt jwt.JWTInterface) LoginUsecase {
+func New(userRepository user.UserRepository, cacheRepository cache.CacheRepository, hasher hasher.HashPassword, jwt jwt.JWTInterface) LoginUsecase {
 	return &Login{
-		userRepository: userRepository,
-		redis:          redis,
-		hasher:         hasher,
-		jwt:            jwt,
+		userRepository:  userRepository,
+		cacheRepository: cacheRepository,
+		hasher:          hasher,
+		jwt:             jwt,
 	}
 }
 
@@ -43,6 +44,10 @@ func (l *Login) Login(ctx context.Context, login model.Login) (model.User, model
 	user, err := l.userRepository.GetByEmail(ctx, login.Email)
 	if err != nil {
 		slog.InfoContext(ctx, "[Usecase.Login] error when call userRepository.GetByEmail", slog.String("err", err.Error()))
+		if err == sql.ErrNoRows {
+			return result, jwt, errs.NewErrs(http.StatusUnauthorized, "unauthorized")
+		}
+
 		return result, jwt, errs.NewErrs(http.StatusInternalServerError, "something went wrong")
 	}
 
@@ -60,7 +65,7 @@ func (l *Login) Login(ctx context.Context, login model.Login) (model.User, model
 	}
 
 	cfg := config.Get()
-	err = l.redis.Set(ctx, jti, user.ID, cfg.JWT.ExpiresIn).Err()
+	err = l.cacheRepository.Set(ctx, jti, user.ID, cfg.JWT.ExpiresIn)
 	if err != nil {
 		slog.ErrorContext(ctx, "[Usecase.Login] error when call redis.Set", slog.String("error", err.Error()))
 		return result, jwt, errs.NewErrs(http.StatusInternalServerError, "something went wrong")
