@@ -69,7 +69,7 @@ func (r *Register) Register(ctx context.Context, register model.Register) (model
 	cfg := config.Get()
 	err = r.cacheRepository.Set(ctx, jti, result.ID, cfg.JWT.ExpiresIn)
 	if err != nil {
-		slog.ErrorContext(ctx, "[Usecase.Register] error when call redis.Set", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "[Usecase.Register] error when call cacheRepository.Set", slog.String("error", err.Error()))
 		return result, jwt, errs.NewErrs(http.StatusInternalServerError, "something went wrong")
 	}
 

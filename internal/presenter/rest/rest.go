@@ -9,6 +9,7 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/rzfhlv/go-task/config"
 	loginhandler "github.com/rzfhlv/go-task/internal/handler/login"
+	logouthandler "github.com/rzfhlv/go-task/internal/handler/logout"
 	registerhandler "github.com/rzfhlv/go-task/internal/handler/register"
 	taskhandler "github.com/rzfhlv/go-task/internal/handler/task"
 	"github.com/rzfhlv/go-task/internal/infrastructure"
@@ -16,6 +17,7 @@ import (
 	"github.com/rzfhlv/go-task/internal/repository/task"
 	"github.com/rzfhlv/go-task/internal/repository/user"
 	"github.com/rzfhlv/go-task/internal/usecase/login"
+	"github.com/rzfhlv/go-task/internal/usecase/logout"
 	"github.com/rzfhlv/go-task/internal/usecase/register"
 	taskusecase "github.com/rzfhlv/go-task/internal/usecase/task"
 	"github.com/rzfhlv/go-task/pkg/hasher"
@@ -71,12 +73,16 @@ func Init(infra infrastructure.Infrastructure, cfg *config.Configuration) (e *ec
 	loginUsecase := login.New(userRepository, cacheRepository, &hasher, jwt)
 	loginHandler := loginhandler.New(loginUsecase)
 
+	logoutUsecase := logout.New(cacheRepository)
+	logoutHandler := logouthandler.New(logoutUsecase)
+
 	taskUsecase := taskusecase.New(taskRepository)
 	taskHandler := taskhandler.New(taskUsecase)
 
 	route := e.Group("/v1")
 	route.POST("/register", registerHandler.Register)
 	route.POST("/login", loginHandler.Login)
+	route.POST("/logout", logoutHandler.Logout, middleware.Bearer)
 
 	task := route.Group("/tasks", middleware.Bearer)
 	task.POST("", taskHandler.Create)
@@ -84,5 +90,6 @@ func Init(infra infrastructure.Infrastructure, cfg *config.Configuration) (e *ec
 	task.GET("/:id", taskHandler.GetByID)
 	task.PUT("/:id", taskHandler.Update)
 	task.DELETE("/:id", taskHandler.Delete)
+
 	return
 }

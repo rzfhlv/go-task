@@ -67,7 +67,7 @@ func (l *Login) Login(ctx context.Context, login model.Login) (model.User, model
 	cfg := config.Get()
 	err = l.cacheRepository.Set(ctx, jti, user.ID, cfg.JWT.ExpiresIn)
 	if err != nil {
-		slog.ErrorContext(ctx, "[Usecase.Login] error when call redis.Set", slog.String("error", err.Error()))
+		slog.ErrorContext(ctx, "[Usecase.Login] error when call cacheRepository.Set", slog.String("error", err.Error()))
 		return result, jwt, errs.NewErrs(http.StatusInternalServerError, "something went wrong")
 	}
 

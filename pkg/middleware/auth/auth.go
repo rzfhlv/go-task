@@ -16,7 +16,8 @@ import (
 type ctxKey string
 
 var (
-	IdKey ctxKey = "id"
+	IdKey  ctxKey = "id"
+	JtiKey ctxKey = "jti"
 )
 
 type AuthMiddleware interface {
@@ -59,7 +60,8 @@ func (a *Auth) Bearer(next echo.HandlerFunc) echo.HandlerFunc {
 			return c.JSON(http.StatusUnauthorized, general.Set(false, nil, nil, nil, "unauthorized"))
 		}
 
-		val, err := a.cacheRepository.Get(context.Background(), claims.RegisteredClaims.ID)
+		jti := claims.RegisteredClaims.ID
+		val, err := a.cacheRepository.Get(context.Background(), jti)
 		if err != nil {
 			slog.Error("error when get token from cahce", slog.String("error", err.Error()))
 			return c.JSON(http.StatusUnauthorized, general.Set(false, nil, nil, nil, "unauthorized"))
@@ -78,6 +80,7 @@ func (a *Auth) Bearer(next echo.HandlerFunc) echo.HandlerFunc {
 
 		ctx := c.Request().Context()
 		ctx = context.WithValue(ctx, IdKey, valInt)
+		ctx = context.WithValue(ctx, JtiKey, jti)
 		c.SetRequest(c.Request().WithContext(ctx))
 
 		return next(c)
