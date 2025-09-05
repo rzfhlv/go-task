@@ -40,41 +40,41 @@ func (a *Auth) Bearer(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		split := strings.Split(c.Request().Header.Get("Authorization"), " ")
 		if len(split) < 2 {
-			slog.Error("missing header authorization")
+			slog.Error("[Middleware.Auth] missing header authorization")
 			return c.JSON(http.StatusUnauthorized, general.Set(false, nil, nil, nil, "unauthorized"))
 		}
 
 		if split[0] != "Bearer" {
-			slog.Error("missing bearer authorization")
+			slog.Error("[Middleware.Auth] missing bearer authorization")
 			return c.JSON(http.StatusUnauthorized, general.Set(false, nil, nil, nil, "unauthorized"))
 		}
 
 		if split[1] == "" {
-			slog.Error("missing bearer token")
+			slog.Error("[Middleware.Auth] missing bearer token")
 			return c.JSON(http.StatusUnauthorized, general.Set(false, nil, nil, nil, "unauthorized"))
 		}
 
 		claims, err := a.jwt.ValidateToken(split[1])
 		if err != nil {
-			slog.Error("error when validate token", slog.String("error", err.Error()))
+			slog.Error("[Middleware.Auth] error when validate token", slog.String("error", err.Error()))
 			return c.JSON(http.StatusUnauthorized, general.Set(false, nil, nil, nil, "unauthorized"))
 		}
 
 		jti := claims.RegisteredClaims.ID
 		val, err := a.cacheRepository.Get(context.Background(), jti)
 		if err != nil {
-			slog.Error("error when get token from cahce", slog.String("error", err.Error()))
+			slog.Error("[Middleware.Auth] error when get token from cahce", slog.String("error", err.Error()))
 			return c.JSON(http.StatusUnauthorized, general.Set(false, nil, nil, nil, "unauthorized"))
 		}
 
 		valInt, err := strconv.ParseInt(val, 10, 64)
 		if err != nil {
-			slog.Error("error when parse value from cache", slog.String("error", err.Error()))
+			slog.Error("[Middleware.Auth] error when parse value from cache", slog.String("error", err.Error()))
 			return c.JSON(http.StatusUnauthorized, general.Set(false, nil, nil, nil, "unauthorized"))
 		}
 
 		if claims.ID != valInt {
-			slog.Error("error id not match", slog.Any("claims_id", claims.ID), slog.Any("val_from_cache", valInt))
+			slog.Error("[Middleware.Auth] error id not match", slog.Any("claims_id", claims.ID), slog.Any("val_from_cache", valInt))
 			return c.JSON(http.StatusUnauthorized, general.Set(false, nil, nil, nil, "unauthorized"))
 		}
 

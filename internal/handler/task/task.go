@@ -77,7 +77,6 @@ func (h *Handler) GetByUserID(e echo.Context) (err error) {
 		return e.JSON(http.StatusBadRequest, general.Set(false, nil, nil, nil, "invalid query param request"))
 	}
 
-	slog.Info("param", slog.Any("val", param))
 	result, err := h.usecase.GetByUserID(ctx, userId, &param)
 	if err != nil {
 		if httpErr, ok := err.(*errs.HttpError); ok {
