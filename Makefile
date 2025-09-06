@@ -23,3 +23,12 @@ deps-down:
 
 generate-mock:
 	mockery --config .mockery.yml
+
+test:
+	go test ./... -cover -race -coverprofile=coverage.out -covermode=atomic
+	./script/coverage.sh
+
+test-analyze:
+	go test ./... -cover -race -coverprofile=coverage.out -covermode=atomic
+	go tool cover -html=coverage.out -o coverage.html
+	open coverage.html

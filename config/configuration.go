@@ -49,9 +49,9 @@ var (
 	once          sync.Once
 )
 
-func All() *Configuration {
+func All(path string) *Configuration {
 	once.Do(func() {
-		viper.AddConfigPath(".")
+		viper.AddConfigPath(path)
 		viper.SetConfigName("config")
 		viper.SetConfigType("yml")
 		viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))

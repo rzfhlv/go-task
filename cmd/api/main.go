@@ -12,7 +12,7 @@ import (
 
 func main() {
 	ctx := context.Background()
-	cfg := config.All()
+	cfg := config.All(".")
 	logger.SetDefault(cfg.App.LogLevel)
 
 	if err := console.Execute(); err != nil {

@@ -36,13 +36,13 @@ func New(userRepository user.UserRepository, cacheRepository cache.CacheReposito
 }
 
 func (r *Register) Register(ctx context.Context, register model.Register) (model.User, model.JWT, error) {
-	result := model.User{}
+	user := model.User{}
 	jwt := model.JWT{}
 
 	hashPassword, err := r.hasher.HashedPassword(register.Password)
 	if err != nil {
 		slog.ErrorContext(ctx, "[Usecase.Register] error when call hasher.HashedPassword", slog.String("error", err.Error()))
-		return result, jwt, errs.NewErrs(http.StatusUnprocessableEntity, "hasher error")
+		return user, jwt, errs.NewErrs(http.StatusUnprocessableEntity, "hasher error")
 	}
 
 	register.Password = hashPassword
@@ -50,27 +50,27 @@ func (r *Register) Register(ctx context.Context, register model.Register) (model
 	_, err = r.userRepository.GetByEmail(ctx, register.Email)
 	if err == nil {
 		slog.InfoContext(ctx, "[Usecase.Register] duplicate data when call userRepository.GetByEmail", slog.String("email", register.Email))
-		return result, jwt, errs.NewErrs(http.StatusUnprocessableEntity, "email already exists")
+		return user, jwt, errs.NewErrs(http.StatusUnprocessableEntity, "email already exists")
 	}
 
-	result, err = r.userRepository.Create(ctx, register)
+	result, err := r.userRepository.Create(ctx, register)
 	if err != nil {
 		slog.ErrorContext(ctx, "[Usecase.Register] error when call userRepository.Create", slog.String("error", err.Error()))
-		return result, jwt, errs.NewErrs(http.StatusInternalServerError, "something went wrong")
+		return user, jwt, errs.NewErrs(http.StatusInternalServerError, "something went wrong")
 	}
 
 	jti := uuid.NewString()
 	token, err := r.jwt.Generate(result, jti)
 	if err != nil {
 		slog.ErrorContext(ctx, "[Usecase.Register] error when call jwt.Generate", slog.String("error", err.Error()))
-		return result, jwt, errs.NewErrs(http.StatusUnprocessableEntity, "failed generated token")
+		return user, jwt, errs.NewErrs(http.StatusUnprocessableEntity, "failed generated token")
 	}
 
 	cfg := config.Get()
 	err = r.cacheRepository.Set(ctx, jti, result.ID, cfg.JWT.ExpiresIn)
 	if err != nil {
 		slog.ErrorContext(ctx, "[Usecase.Register] error when call cacheRepository.Set", slog.String("error", err.Error()))
-		return result, jwt, errs.NewErrs(http.StatusInternalServerError, "something went wrong")
+		return user, jwt, errs.NewErrs(http.StatusInternalServerError, "something went wrong")
 	}
 
 	return result, token, nil

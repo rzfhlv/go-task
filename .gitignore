@@ -16,3 +16,6 @@ coverage.txt
 build
 
 config.yml
+coverage.out
+coverage_filtered.out
+coverage.html
