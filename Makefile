@@ -20,3 +20,6 @@ deps-up:
 
 deps-down:
 	docker compose down
+
+generate-mock:
+	mockery --config .mockery.yml
