@@ -32,10 +32,7 @@ func (j *JWTImpl) Generate(user model.User, jti string) (jwtModel model.JWT, err
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString([]byte(j.cfg.JWT.Secret))
-	if err != nil {
-		return
-	}
+	tokenString, _ := token.SignedString([]byte(j.cfg.JWT.Secret))
 
 	jwtModel.AccessToken = tokenString
 	jwtModel.TokenType = bearer
