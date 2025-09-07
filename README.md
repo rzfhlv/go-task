@@ -27,6 +27,10 @@
 
     ``` make migrate-up ```
 
+- run the test:
+
+    ``` make test ```
+
 - run the app:
 
     ``` make run ```

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-EXCLUDE_DIRS="cmd/ docs/ config/ script/ /mocks/ /infrastructure/ /presenter/"
+EXCLUDE_DIRS="cmd/ docs/ config/ script/ /mocks/ /infrastructure/ /presenter/ /handler/"
 
 cp coverage.out coverage_filtered.out
 for d in $EXCLUDE_DIRS; do

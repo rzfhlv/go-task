@@ -28,15 +28,9 @@ func (c *Cache) Set(ctx context.Context, key string, value int64, duration time.
 }
 
 func (c *Cache) Get(ctx context.Context, key string) (string, error) {
-	stmd := c.client.Get(ctx, key)
-	return stmd.Val(), stmd.Err()
+	return c.client.Get(ctx, key).Result()
 }
 
 func (c *Cache) Del(ctx context.Context, key string) (int64, error) {
-	deleted, err := c.client.Del(ctx, key).Result()
-	if err != nil {
-		return 0, err
-	}
-
-	return deleted, nil
+	return c.client.Del(ctx, key).Result()
 }
