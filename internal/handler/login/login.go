@@ -31,7 +31,7 @@ func (h *Handler) Login(e echo.Context) (err error) {
 	login := model.Login{}
 	err = e.Bind(&login)
 	if err != nil {
-		return e.JSON(http.StatusUnprocessableEntity, nil)
+		return e.JSON(http.StatusUnprocessableEntity, general.Set(false, nil, nil, nil, "error when binding request"))
 	}
 
 	err = e.Validate(login)

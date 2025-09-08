@@ -1,5 +1,8 @@
 .PHONY: build run
 
+init:
+	go mod download
+
 build:
 	go build -o build/main cmd/api/main.go
 

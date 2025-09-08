@@ -17,7 +17,7 @@
 
 - golang initialize:
 
-    ``` go mod tidy ```
+    ``` make init ```
 
 - run the infrastructure:
 

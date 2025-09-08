@@ -130,6 +130,12 @@ func (h *Handler) Update(e echo.Context) (err error) {
 		return e.JSON(http.StatusUnprocessableEntity, general.Set(false, nil, nil, nil, "invalid json"))
 	}
 
+	err = e.Validate(task)
+	if err != nil {
+		slog.ErrorContext(ctx, "[Handler.Task] error when validate the request", slog.String("error", err.Error()))
+		return e.JSON(http.StatusBadRequest, general.Set(false, nil, nil, nil, err.Error()))
+	}
+
 	task.ID = taskId
 	result, err := h.usecase.Update(ctx, task)
 	if err != nil {

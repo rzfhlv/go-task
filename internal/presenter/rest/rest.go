@@ -26,11 +26,11 @@ import (
 )
 
 type CustomValidator struct {
-	validator *validator.Validate
+	Validator *validator.Validate
 }
 
 func (cv CustomValidator) Validate(i any) error {
-	err := cv.validator.Struct(i)
+	err := cv.Validator.Struct(i)
 	if errs, ok := err.(validator.ValidationErrors); ok {
 		for _, e := range errs {
 			field := e.Field()
@@ -54,7 +54,7 @@ func Init(infra infrastructure.Infrastructure, cfg *config.Configuration) (e *ec
 	e = echo.New()
 	e.Use(middleware.Recover())
 	e.Use(middleware.RequestID())
-	e.Validator = &CustomValidator{validator: validator.New()}
+	e.Validator = &CustomValidator{Validator: validator.New()}
 
 	sqlStore := infra.SQLStore()
 	memStore := infra.MemStore()
